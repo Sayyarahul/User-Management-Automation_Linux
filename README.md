@@ -19,9 +19,23 @@ Organized home directories
 
 Central logging
 
+Simple Project Architecture
+
+employees.txt
+     │
+     ▼
+create_users.sh
+     │
+     ├── Creates users  → fake_users.db
+     ├── Creates groups → fake_groups.db
+     ├── Creates home folders → wsl_users/<username>/
+     ├── Generates passwords → passwords/<username>.pass
+     └── Logs actions → user_management.log
+
 Easy to extend
 
  Folder Structure
+ 
 user-management/
 │
 ├── create_users.sh
@@ -51,7 +65,8 @@ light; sudo,dev,www-data
 rahul; sudo
 akki; dev,www-data
 
- How to Run the Script
+How to Run the Script
+
 1. Navigate to project folder
 cd /home/rahul_sayya/user-management
 
