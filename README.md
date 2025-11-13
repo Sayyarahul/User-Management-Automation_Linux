@@ -1,218 +1,133 @@
-# User Management Automation Script — WSL/Linux
+User Management Automation Script (WSL-Compatible)
 
-## Overview
-This project automates the onboarding of new users in a Linux environment.  
-It reads a list of usernames and their group memberships from a text file and automatically performs the following:
+This project automates user onboarding using a Bash script.
+It reads user information from an input file, creates user accounts, assigns groups, generates passwords, and organizes home directories — all from one command.
 
-- Creates users and assigns them to groups  
-- Sets up home directories with correct ownership and permissions  
-- Generates secure random passwords  
-- Logs all actions for auditing  
-- Stores credentials securely in protected system directories  
+Fully compatible with Windows Subsystem for Linux (WSL).
 
-This script demonstrates real-world **SysOps automation** skills used in DevOps and Linux administration.
+Features
 
----
+Automated user creation
 
-## Project Purpose
-Manually creating users and assigning permissions is slow and error-prone.  
-This project solves that by providing a reusable Bash script — `create_users.sh` — that performs user management tasks automatically with security, logging, and error handling.
+Group assignment
 
----
+Auto-generated 12-character passwords
 
-## Project Structure
-~/user-management/
-├── create_users.sh # Main Bash script
-├── employees.txt # Input file containing users and groups
-└── README.md # Documentation (this file)
+Separate password files per user
 
-### System Files Created by Script
-| File / Directory | Purpose |
-|------------------|----------|
-| `/var/log/user_management.log` | Stores detailed logs of actions (success, errors, skips) |
-| `/var/secure/user_passwords.txt` | Stores usernames and randomly generated passwords |
-| `/home/<username>` | Home directory created for each new user |
-| `/etc/passwd` | System record of all Linux users |
-| `/etc/group` | System record of all user groups |
+Organized home directories
 
----
+Central logging
 
-## Input File Format (`employees.txt`)
-The script reads from `employees.txt`, which contains usernames and their assigned groups.
+Easy to extend
 
-### Example:
+ Folder Structure
+user-management/
+│
+├── create_users.sh
+├── employees.txt
+├── user_management.log
+│
+├── passwords/
+│     ├── light.pass
+│     ├── rahul.pass
+│     └── akki.pass
+│
+└── wsl_users/
+      ├── light/
+      ├── rahul/
+      └── akki/
 
- Notes:
-- Each line = `username;group1,group2,group3`
-- Lines starting with `#` are ignored (comments)
-- Whitespace is automatically ignored
+ Input File Format
 
----
+employees.txt
 
-## How It Works (Step-by-Step)
+username; group1,group2,group3
 
-1. **Setup Secure Directories**
-   - Creates `/var/log` and `/var/secure` if they don’t exist  
-   - Ensures strict permissions (`chmod 600`)  
 
-2. **Read Input File**
-   - Reads `employees.txt` line by line  
-   - Skips comments and blank lines  
+Example:
 
-3. **Parse Each Line**
-   - Extracts `username` and `group` values using `cut` and `tr`
+light; sudo,dev,www-data
+rahul; sudo
+akki; dev,www-data
 
-4. **Create Primary Group**
-   - If the primary group doesn’t exist, it creates it with:
-     ```bash
-     sudo groupadd <username>
-     ```
+ How to Run the Script
+1. Navigate to project folder
+cd /home/rahul_sayya/user-management
 
-5. **Create User**
-   - Creates the user, assigns groups, and defines the shell:
-     ```bash
-     sudo useradd -m -g <username> -G <groups> -s /bin/bash <username>
-     ```
+2.Open in VS Code
+code .
 
-6. **Create Home Directory**
-   - Ensures `/home/<username>` exists and applies correct ownership and permissions.
-
-7. **Generate Password**
-   - Creates a 12-character secure password:
-     ```bash
-     tr -dc A-Za-z0-9 </dev/urandom | head -c 12
-     ```
-
-8. **Set Password**
-   - Applies it to the user using:
-     ```bash
-     echo "username:password" | sudo chpasswd
-     ```
-
-9. **Save Password Securely**
-   - Appends `username : password` to `/var/secure/user_passwords.txt`
-
-10. **Log Activity**
-    - Every action (success, warning, or error) is logged to `/var/log/user_management.log`
-
-11. **Handle Duplicates**
-    - Existing users and groups are skipped gracefully with log entries.
-
----
-
-## Commands Used in the Project
-
-```bash
-# Step 1: Create project folder
-mkdir -p ~/user-management
-cd ~/user-management
-
-# Step 2: Create input file
-cat > employees.txt <<EOF
-# Employee onboarding list
-rahul; sudo,dev,www-data
-akki; sudo
-EOF
-
-# Step 3: Create and edit the script
-nano create_users.sh
-
-# Step 4: Make it executable
+3. Make script executable
 chmod +x create_users.sh
 
-# Step 5: Run as root
-sudo ./create_users.sh
+4. Run
+./create_users.sh
 
-# Step 6: Verify results
-getent passwd rahul akki
-groups rahul
-groups akki
+Check Outputs
+Passwords
+ls passwords/
+cat passwords/light.pass
 
-# Step 7: View logs and passwords
-sudo cat /var/log/user_management.log
-sudo cat /var/secure/user_passwords.txt
+Logs
+cat user_management.log
 
-Log File (/var/log/user_management.log)
-[INFO] Created group: rahul
-[SUCCESS] Created user: rahul with groups: sudo,dev,www-data
-[INFO] Created home directory for rahul
-[INFO] Created group: akki
-[SUCCESS] Created user: akki with groups: sudo
+Home directories
+ls ~/wsl_users/
 
-Password File (/var/secure/user_passwords.txt)
-rahul : Xy8Bz2LpRk7A
-akki : Dt5Gh3KsPp9W
+How It Works
 
-Security Considerations
+Reads each line from employees.txt
 
-Must be run with sudo privileges
+Extracts username and group list
 
-Sensitive data stored in /var/secure/user_passwords.txt (permissions 600)
+Creates a home directory in ~/wsl_users/
 
-Logs restricted to root access (600)
+Generates a strong random password
 
-Passwords are randomly generated and not stored in plaintext beyond that file
+Saves it in: passwords/<username>.pass
 
-To safely delete sensitive data:
+Logs all actions in user_management.log
 
-sudo shred -u /var/secure/user_passwords.txt
+Example Output
+[INFO] Created user: light
+[INFO] Added light to group: sudo
+[INFO] Added light to group: dev
+[INFO] Added light to group: www-data
+[INFO] Password saved: passwords/light.pass
 
- Error Handling
- 
-Scenario	Script Behavior
-Comment or empty line	Ignored
-User already exists	Logs a warning and skips
-Group already exists	Reuses the existing group
-Permission denied	Displays error and logs it
-Invalid input format	Skips line and logs error
+[INFO] Created user: rahul
+[INFO] Added rahul to group: sudo
+[INFO] Password saved: passwords/rahul.pass
 
- Testing Scenarios
+[INFO] Created user: akki
+[INFO] Added akki to group: dev
+[INFO] Added akki to group: www-data
+[INFO] Password saved: passwords/akki.pass
 
-Test Case	Expected Result
-Add new users (rahul, akki)	Created successfully
-Re-run script	Existing users skipped
-Check /var/log	Shows creation logs
-Check /var/secure	Passwords stored securely
-Run without sudo	Fails with permission error
+Password Storage
 
- Tools & Commands Used
- 
-Command	Purpose
-nano, cat	File creation and editing
-chmod, mkdir, touch	File and directory setup
-useradd, groupadd	User and group creation
-chpasswd	Set passwords
-tee	Logging output
-getent, groups, id	Verify users and groups
-sudo	Run privileged operations
+Each user receives a unique 12-character password
 
- Cleanup Commands (Optional)
+Stored in separate files (<username>.pass)
 
-If you want to remove created users and logs:
+Easy for administrators to manage
 
-sudo userdel -r rahul
-sudo userdel -r akki
-sudo rm -f /var/secure/user_passwords.txt /var/log/user_management.log
+Secure, readable, and organized
 
- Summary
+ Future Enhancements
 
-This project demonstrates:
+User deletion script
 
-Practical SysOps automation skills
+Reset password tool
 
-Linux administration using Bash
+Export users to CSV
 
-Secure password management
+Colorful terminal UI
 
-Structured logging and auditing
+Real Linux system user creation (VM/Server)
 
-Scalable user onboarding process
-
-You can extend this script to integrate with Ansible, LDAP, or cloud IAM systems for enterprise use.
-
- Author
+Author
 
 Rahul Sayya
-SysOps Engineer | Linux Automation Enthusiast
- Project: User Management Automation (WSL/Linux)
- Completed: November 2025
+User & Group Management Automation
